@@ -1,0 +1,193 @@
+---
+description: Flutter Feature First架构 领域层规则
+globs: *.dart, *.yaml
+alwaysApply: true
+---
+# Flutter Feature First架构 领域层规则
+
+## 目录结构
+
+```
+lib/
+├── core/
+│   └── use_cases/        # 核心领域逻辑
+│       ├── authentication/  # 认证相关用例
+│       ├── analytics/       # 分析相关用例
+│       ├── permission/      # 权限相关用例
+│       └── images/          # 图像处理用例
+└── features/
+    └── {feature_name}/
+        └── use_cases/    # 功能特定的用例
+```
+
+## 实现指南
+
+### 1. 用例模式
+
+- 每个用例代表单一的业务操作
+- 用例是业务逻辑的主要入口点
+- 将用例实现为具有单一公共方法（通常是`call()`）的类
+  ```dart
+  class YourUseCase {
+    YourUseCase(this._ref);
+
+    final Ref _ref;
+
+    Future<ReturnType> call(Parameters params) async {
+      // 实现
+    }
+  }
+  ```
+
+### 2. 使用Riverpod进行状态管理
+
+- 使用Riverpod进行状态管理和依赖注入
+- 使用`@riverpod`或`@Riverpod(keepAlive: true)`注解实现控制器
+- 使用build_runner生成代码
+  ```dart
+  @riverpod
+  class YourController extends _$YourController {
+    @override
+    StateType build() {
+      // 初始状态
+      return initialState;
+    }
+
+    // 更新状态的方法
+  }
+  ```
+
+### 3. 依赖注入
+
+- 通过Riverpod注入存储库和其他依赖项
+- 对于响应式依赖项使用`ref.watch()`
+- 对于非响应式依赖项使用`ref.read()`
+  ```dart
+  final repository = ref.watch(repositoryProvider);
+  ```
+
+### 4. 错误处理
+
+- 使用领域特定的异常（`AppException`）
+- 处理并转换基础设施异常
+- 提供有意义的错误消息
+  ```dart
+  try {
+    // 实现
+  } on SpecificException catch (e) {
+    throw AppException(title: '用户友好的错误消息');
+  }
+  ```
+
+### 5. 异步操作
+
+- 对异步操作使用`Future`和`Stream`
+- 使用`AsyncValue`处理加载状态和错误状态
+- 使用`AsyncValue.guard()`进行错误处理
+  ```dart
+  state = await AsyncValue.guard(() async {
+    // 异步操作
+    return result;
+  });
+  ```
+
+### 6. 状态更新
+
+- 使状态更新具有原子性和一致性
+- 仅在操作成功后更新状态
+- 在适当情况下实现乐观更新
+
+  ```dart
+  // 更新状态
+  state = newState;
+
+  // 持久化更改
+  await repository.save(newState);
+  ```
+
+### 7. 业务逻辑分离
+
+- 将业务逻辑保存在用例中，而不是UI或存储库中
+- 在用例中实现验证逻辑
+- 在领域层和基础设施层之间转换数据
+
+### 8. 测试
+
+- 设计用例使其易于测试
+- 在测试中模拟依赖项
+- 测试成功和失败的场景
+  ```dart
+  test('用例成功', () async {
+    // 准备
+    when(mockRepository.method()).thenReturn(expectedValue);
+
+    // 执行
+    final result = await useCase.call(params);
+
+    // 验证
+    expect(result, expectedValue);
+  });
+  ```
+
+### 9. 分页和数据加载
+
+- 在专用控制器中实现分页逻辑
+- 跟踪分页状态（最后ID、页码等）
+- 提供加载更多数据的方法
+  ```dart
+  Future<void> loadMore() async {
+    // 加载下一页
+  }
+  ```
+
+### 10. 最佳实践
+
+- 遵循一致的命名约定
+- 记录公共API和复杂逻辑
+- 让用例专注于单一职责
+- 对领域模型使用不可变实体
+
+## 用例实现示例
+
+### 简单提供者
+
+```dart
+final yourUseCaseProvider = Provider(YourUseCase.new);
+
+class YourUseCase {
+  YourUseCase(this._ref);
+
+  final Ref _ref;
+
+  Future<r> call(Params params) async {
+    try {
+      final repository = _ref.read(repositoryProvider);
+      final result = await repository.operation(params);
+      return result;
+    } on Exception catch (e) {
+      throw AppException(title: '错误消息');
+    }
+  }
+}
+```
+
+### 状态控制器
+
+```dart
+@riverpod
+class DataController extends _$DataController {
+  @override
+  Future<Data> build() async {
+    // 初始数据加载
+    return await ref.watch(repositoryProvider).fetchData();
+  }
+
+  Future<void> update(Data newData) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(repositoryProvider).saveData(newData);
+      return newData;
+    });
+  }
+}
+```
