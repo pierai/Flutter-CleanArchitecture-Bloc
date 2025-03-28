@@ -101,53 +101,91 @@ lib/
 
 ### 核心依赖 🎯
 - `flutter_sdk: ">=3.4.0"` - Flutter 框架核心
-- `flutter_localizations` - 国际化支持
 - `cupertino_icons` - iOS 风格图标
 
-
-
-
-
-
+### 国际化
+- `flutter_localizations` - 国际化支持
+- `flutter_timezone` - 时区信息
+- `timezone` - 时区数据解析与转换
 
 ### 状态管理和路由 🔄
 - `flutter_bloc: ^8.1.4` - Bloc 状态管理
 - `bloc` - Bloc 核心实现
 - `bloc_concurrency` - Bloc 并发控制
 - `flutter_hooks` - React 风格 Hooks
-- `go_router` - 声明式路由
+- `auto_route: ^10.0.1` - 路由管理库
 
 ### 数据管理 💾
-- `shared_preferences` - 本地存储
+- `objectbox` - 本地存储
 - `retrofit` - API 客户端生成
 - `dio` - HTTP 客户端
-- `freezed_annotation` - 不可变对象
-- `json_annotation` - JSON 序列化
-- `equatable` - 相等性比较
+
+### 权限验证
+- `permission_handler: ^11.4.0` - HTTP 客户端
+
+
+### 日志
+- `logging` - ​基础日志框架
+- `logger` - 基于 logging 实现增强
 
 ### UI 组件 🎨
-- `pull_to_refresh_flutter3` - 下拉刷新
-- `extended_image` - 图片处理
+
+#### 图片
+
+- `image_picker` - 图片选择
+- `cached_network_image` - 图片缓存库
+- `extended_image: ^10.0.0` - 官方 Image 的扩展组件
+- `flutter_image_compress: ^2.4.0` - 压缩图片
+- `image_cropper` - 图片裁剪
+- `image_gallery_saver_plus: ^4.0.1` - ​保存到设备本地相册
 - `flutter_svg` - SVG 支持
-- `flutter_slidable` - 滑动操作
+
+#### 交互
+
+- `pull_to_refresh_flutter3` - 下拉刷新
+- `numberpicker` - 数字选择器
+- `flutter_slidable` - 滑动操作（实现列表项左右滑动显示操作面板（如删除、分享按钮））
 - `adaptive_dialog` - 自适应对话框
 - `page_transition` - 页面动画
 - `flutter_inappwebview` - 内置浏览器
+- `flutter_linkify` - 自动检测文本中的 URL 和电子邮件地址，转换为可点击的链接（常配合 url_launcher 使用，实现链接跳转功能）
 - `url_launcher` - URL 处理
 - `map_launcher` - 地图启动
-- `image_picker` - 图片选择
-- `image_cropper` - 图片裁剪
 - `flutter_local_notifications` - 本地通知
+- `share_plus` - 调用平台原生分享功能
+- `dismissible_page` - 提供类似 iOS 的页面滑动关闭效果，用户可通过左右滑动返回上一页（全屏弹窗、图片查看器等需要手势操作的界面。）
+
+
+### 测试
+- `bloc_test` - Bloc 测试
+- `mockito` - 模拟数据
 
 ### 开发工具 🛠️
-- `pedantic_mono` - 代码风格检查
+
+#### 代码规范
+- `flutter_lints` - Flutter默认代码规范
 - `custom_lint` - 自定义检查
-- `bloc_test` - Bloc 测试
+
+
+#### 代码生成
+- `freezed_annotation` - 不可变对象
 - `json_serializable` - JSON 生成
+- `json_annotation` - JSON 序列化
+- `equatable` - 相等性比较
 - `build_runner` - 代码生成
 - `freezed` - 不可变类生成
 - `retrofit_generator` - Retrofit 生成
 - `flutter_gen_runner` - 资源生成
+
+
+### 其他
+- `rxdart` - 响应式编程库
+- `uuid` - 生成符合 RFC4122 标准的全局唯一标识符（UUID），支持版本 1（时间戳）、4（随机数）和 5（命名空间哈希）
+- `collection` - Dart 标准库的扩展，提供高级集合操作工具（如优先级队列、双向映射）
+- `quiver` - 实用工具库，包含集合处理、异步工具、缓存管理等模块
+
+
+
 
 ## 状态管理指南
 
@@ -277,7 +315,6 @@ class AccountPage extends StatelessWidget {
 2. 为业务逻辑编写单元测试
 3. 为UI组件实现组件测试
 4. 使用bloc_test进行BLoC测试
-5. 使用mockito进行依赖模拟
 
 ```dart
 void main() {
