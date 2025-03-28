@@ -1,5 +1,5 @@
 ---
-description: 基于 Riverpod 的特性优先架构
+description: 基于BLoC的特性优先架构
 globs: *
 alwaysApply: true
 ---
@@ -99,92 +99,73 @@ lib/
 
 ## 包依赖
 
-### 核心依赖 🎯
-- `flutter_sdk: ">=3.4.0"` - Flutter 框架核心
-- `cupertino_icons` - iOS 风格图标
-
-### 国际化
-- `flutter_localizations` - 国际化支持
-- `flutter_timezone` - 时区信息
-- `timezone` - 时区数据解析与转换
-
-### 状态管理和路由 🔄
-- `flutter_bloc: ^8.1.4` - Bloc 状态管理
+### 架构和状态管理 🏗️
+- `flutter_bloc: ^8.1.4` - Bloc 状态管理库，用于分离业务逻辑和 UI
 - `bloc` - Bloc 核心实现
 - `bloc_concurrency` - Bloc 并发控制
-- `flutter_hooks` - React 风格 Hooks
-- `auto_route: ^10.0.1` - 路由管理库
+- `get_it: ^7.6.7` - 依赖注入容器
+- `injectable: ^2.3.2` - 简化依赖注入配置
 
-### 数据管理 💾
-- `objectbox` - 本地存储
-- `retrofit` - API 客户端生成
-- `dio` - HTTP 客户端
+### 网络和数据处理 🌐
+- `dio: ^5.4.0` - HTTP 客户端
+- `retrofit` - REST API 客户端生成器
+- `objectbox: ^2.5.0` - 本地数据库，高性能 NoSQL
+- `shared_preferences` - 键值对存储
 
-### 权限验证
-- `permission_handler: ^11.4.0` - HTTP 客户端
-
-
-### 日志
-- `logging` - ​基础日志框架
-- `logger` - 基于 logging 实现增强
-
-### UI 组件 🎨
-
-#### 图片
-
-- `image_picker` - 图片选择
-- `cached_network_image` - 图片缓存库
-- `extended_image: ^10.0.0` - 官方 Image 的扩展组件
-- `flutter_image_compress: ^2.4.0` - 压缩图片
-- `image_cropper` - 图片裁剪
-- `image_gallery_saver_plus: ^4.0.1` - ​保存到设备本地相册
-- `flutter_svg` - SVG 支持
-
-#### 交互
-
+### UI 和交互 📱
+- `auto_route: ^7.8.4` - 路由管理
+- `flutter_screenutil: ^5.9.0` - 屏幕适配
 - `pull_to_refresh_flutter3` - 下拉刷新
-- `numberpicker` - 数字选择器
-- `flutter_slidable` - 滑动操作（实现列表项左右滑动显示操作面板（如删除、分享按钮））
+- `infinite_scroll_pagination: ^4.0.0` - 无限滚动分页
+- `flutter_slidable` - 滑动操作组件
+- `dismissible_page` - 可滑动关闭的页面
 - `adaptive_dialog` - 自适应对话框
-- `page_transition` - 页面动画
+- `page_transition` - 页面转场动画
 - `flutter_inappwebview` - 内置浏览器
-- `flutter_linkify` - 自动检测文本中的 URL 和电子邮件地址，转换为可点击的链接（常配合 url_launcher 使用，实现链接跳转功能）
+
+### 图片处理 🖼️
+- `flutter_svg: ^2.0.9` - SVG 图像支持
+- `cached_network_image: ^3.3.1` - 图片缓存
+- `extended_image` - 高级图片处理
+- `image_picker` - 图片选择器
+- `image_cropper` - 图片裁剪
+
+### 实用工具 🛠️
+- `dartx: ^1.2.0` - Dart 扩展方法集合
+- `rxdart: ^0.27.7` - 响应式编程扩展
+- `intl: ^0.18.1` - 国际化支持
+- `collection` - Dart 集合操作工具
+- `tuple: ^2.0.2` - 元组数据类型
+- `uuid` - UUID 生成器
+- `quiver` - 实用工具库
+- `logger` - 日志工具
+
+### 平台集成 📱
+- `path_provider` - 文件系统路径
+- `device_info_plus` - 设备信息
 - `url_launcher` - URL 处理
-- `map_launcher` - 地图启动
+- `map_launcher` - 地图应用启动
 - `flutter_local_notifications` - 本地通知
-- `share_plus` - 调用平台原生分享功能
-- `dismissible_page` - 提供类似 iOS 的页面滑动关闭效果，用户可通过左右滑动返回上一页（全屏弹窗、图片查看器等需要手势操作的界面。）
+- `flutter_udid` - 设备唯一标识
 
-
-### 测试
-- `bloc_test` - Bloc 测试
-- `mockito` - 模拟数据
-
-### 开发工具 🛠️
-
-#### 代码规范
-- `flutter_lints` - Flutter默认代码规范
-- `custom_lint` - 自定义检查
-
-
-#### 代码生成
-- `freezed_annotation` - 不可变对象
-- `json_serializable` - JSON 生成
-- `json_annotation` - JSON 序列化
+### 代码生成 ⚙️
+- `freezed_annotation` - 不可变对象注解
+- `json_serializable` - JSON 序列化生成
+- `json_annotation` - JSON 序列化注解
 - `equatable` - 相等性比较
-- `build_runner` - 代码生成
-- `freezed` - 不可变类生成
-- `retrofit_generator` - Retrofit 生成
-- `flutter_gen_runner` - 资源生成
+- `build_runner` - 代码生成工具
+- `freezed` - 不可变类生成器
+- `retrofit_generator` - Retrofit 客户端生成器
+- `flutter_gen_runner` - 资源代码生成器
+- `injectable_generator` - 依赖注入代码生成器
 
-
-### 其他
-- `rxdart` - 响应式编程库
-- `uuid` - 生成符合 RFC4122 标准的全局唯一标识符（UUID），支持版本 1（时间戳）、4（随机数）和 5（命名空间哈希）
-- `collection` - Dart 标准库的扩展，提供高级集合操作工具（如优先级队列、双向映射）
-- `quiver` - 实用工具库，包含集合处理、异步工具、缓存管理等模块
-
-
+### 开发和测试 🔧
+- `flutter_lints: ^3.0.1` - Flutter 代码规范
+- `custom_lint` - 自定义代码检查
+- `pedantic_mono` - 严格代码风格检查
+- `mocktail: ^1.0.3` - 模拟测试框架
+- `bloc_test: ^9.1.6` - Bloc 测试工具
+- `melos: ^4.1.0` - 多模块项目管理
 
 
 ## 状态管理指南
@@ -340,12 +321,72 @@ void main() {
 }
 ```
 
-## 性能指南
+## 数据流和模型转换
 
-1. 使用extended_image实现适当的图片缓存
-2. 使用pull_to_refresh_flutter3优化列表视图
-3. 遵循适当的状态管理模式
-4. 实现适当的Firebase缓存策略
+### 数据流向
+1. **UI层**：用户交互触发Event
+2. **BLoC层**：处理Event，调用Use Case
+3. **Use Case层**：执行业务逻辑，调用Repository
+4. **Repository层**：协调数据源，返回Domain实体
+5. **数据源**：提供原始数据
+
+### 模型转换策略
+- **DTO (Data Transfer Objects)**：位于Infrastructure层，用于API通信
+- **Entity**：位于Domain层，表示核心业务对象
+- **UI Models**：位于Presentation层，针对UI展示优化
+
+转换责任：
+- Infrastructure层负责DTO与Entity的互相转换
+- Presentation层负责Entity与UI Model的互相转换
+
+示例：
+```dart
+// Infrastructure层
+@JsonSerializable()
+class UserDto {
+  final String id;
+  final String name;
+  final String email;
+  
+  UserDto({required this.id, required this.name, required this.email});
+  
+  factory UserDto.fromJson(Map<String, dynamic> json) => _$UserDtoFromJson(json);
+  Map<String, dynamic> toJson() => _$UserDtoToJson(this);
+  
+  // 转换为领域实体
+  User toDomain() => User(id: id, name: name, email: email);
+}
+
+// Domain层
+class User {
+  final String id;
+  final String name;
+  final String email;
+  
+  User({required this.id, required this.name, required this.email});
+}
+
+// Presentation层
+class UserViewModel {
+  final String id;
+  final String displayName;
+  final String emailAddress;
+  final bool isVerified;
+  
+  UserViewModel({
+    required this.id, 
+    required this.displayName, 
+    required this.emailAddress,
+    this.isVerified = false,
+  });
+  
+  factory UserViewModel.fromEntity(User user) => UserViewModel(
+    id: user.id,
+    displayName: user.name,
+    emailAddress: user.email,
+  );
+}
+```
 
 ## 命名指南
 
