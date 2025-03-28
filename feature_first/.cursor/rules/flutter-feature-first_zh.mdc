@@ -3,23 +3,21 @@ description: 基于 Riverpod 的特性优先架构
 globs: *
 alwaysApply: true
 ---
-
 ## 概述
 
 本文档概述了基于实际项目分析的当前项目结构和架构模式。遵循这些指南以在应用Flutter最佳实践的同时保持一致性。
 
 ## 架构概述
 
-- 基于Riverpod状态管理的Feature-first架构
+- 基于BLoC模式的Feature-first架构
 - 基于Hooks的组件组合
 - 领域驱动设计(DDD)的分层架构
   - Domain层：业务逻辑和规则
   - Infrastructure层：数据访问和外部服务
   - Presentation层：用户界面和交互
-- Firebase作为后端服务
 - SharedPreferences用于本地持久化
 - Retrofit用于API通信
-- 使用pedantic_mono和custom_lint进行静态分析
+- 使用flutter_lints和custom_lint进行静态分析
 
 ## 项目结构
 
@@ -35,32 +33,40 @@ lib/
   │   │   │   └── repositories/ // 仓库实现
   │   │   └── presentation/     // 表现层
   │   │       ├── pages/       // 页面
-  │   │       └── widgets/     // 组件
+  │   │       ├── widgets/     // 组件
+  │   │       └── bloc/        // 状态管理。领域层（domain）应该保持 框架无关性，Bloc 的框架依赖性（如 Flutter 的 Stream/Bloc 库）使其更适合放在表现层
+  │   │           ├── account_bloc.dart     // BLoC类
+  │   │           ├── account_event.dart    // 事件定义
+  │   │           └── account_state.dart    // 状态定义
   │   ├── authentication/      // 认证功能
-  │   ├── github_users/       // GitHub用户功能
   │   ├── home/              // 主页功能
-  │   ├── memo/              // 备忘录功能
   │   ├── setting/           // 设置功能
-  │   ├── timeline/          // 时间线功能
   │   └── ...               // 其他功能模块
   ├── core/                  // 核心功能
-  │   ├── domain/           // 核心领域层
-  │   │   ├── entities/     // 核心领域实体
-  │   │   ├── repositories/ // 核心仓库接口
-  │   │   └── use_cases/    // 核心业务逻辑
-  │   │       ├── authentication/ // 认证相关用例
-  │   │       ├── analytics/      // 分析相关用例
-  │   │       └── permission/     // 权限相关用例
-  │   ├── infrastructure/    // 核心基础设施层
-  │   │   └── repositories/  // 核心仓库实现
+  │   └── di/              # 依赖注入配置
+  │   │   ├── injector.dart
+  │   │   └── modules/     # 按功能划分的注入模块
   │   ├── presentation/      // 核心表现层
   │   │   └── widgets/      // 共享组件
+  │   │   └── bloc/         // 全局状态管理           
+  │   │       ├── app_bloc.dart  // 应用级BLoC
+  │   │       ├── app_event.dart // 应用级事件
+  │   │       └── app_state.dart // 应用级状态
   │   ├── exceptions/        // 自定义异常
   │   ├── extensions/        // 扩展方法
   │   ├── utils/            // 工具函数
   │   ├── router/           // 导航路由
   │   ├── res/              // 资源（生成的）
+  │   │   ├── colors/
+  │   │   ├── strings/
+  │   │   ├── themes/
+  │   │   └── icons/
   │   └── custom_hooks/     // 自定义Flutter hooks
+  └── test/                  # 测试目录与源码平行（可选）
+  │   └── features/
+  │   │   └── account/
+  │   │       ├── domain/
+  │   │       └── presentation/
   ├── app.dart              // 应用配置
   └── main.dart             // 入口点
 ```
@@ -90,76 +96,149 @@ lib/
   - Widgets（组件）
   - View Models/Controllers
   
+
 ## 包依赖
 
-### 核心依赖
+### 核心依赖 🎯
+- `flutter_sdk: ">=3.4.0"` - Flutter 框架核心
+- `flutter_localizations` - 国际化支持
+- `cupertino_icons` - iOS 风格图标
 
-- Flutter SDK (>=3.4.0)
-- flutter_localizations
-- cupertino_icons
 
-### 状态管理和UI
 
-- hooks_riverpod
-- riverpod_annotation
-- flutter_hooks
-- go_router（导航）
 
-### Firebase服务
 
-- firebase_core
-- firebase_analytics
-- cloud_firestore
-- firebase_auth
-- firebase_storage
-- cloud_functions
-- firebase_messaging
-- firebase_crashlytics
-- firebase_remote_config
 
-### 数据管理
 
-- shared_preferences
-- retrofit
-- dio
-- freezed_annotation
-- json_annotation
-- equatable
+### 状态管理和路由 🔄
+- `flutter_bloc: ^8.1.4` - Bloc 状态管理
+- `bloc` - Bloc 核心实现
+- `bloc_concurrency` - Bloc 并发控制
+- `flutter_hooks` - React 风格 Hooks
+- `go_router` - 声明式路由
 
-### UI组件和功能
+### 数据管理 💾
+- `shared_preferences` - 本地存储
+- `retrofit` - API 客户端生成
+- `dio` - HTTP 客户端
+- `freezed_annotation` - 不可变对象
+- `json_annotation` - JSON 序列化
+- `equatable` - 相等性比较
 
-- pull_to_refresh_flutter3
-- extended_image
-- flutter_svg
-- flutter_slidable
-- adaptive_dialog
-- page_transition
-- flutter_inappwebview
-- url_launcher
-- map_launcher
-- image_picker
-- image_cropper
-- flutter_local_notifications
+### UI 组件 🎨
+- `pull_to_refresh_flutter3` - 下拉刷新
+- `extended_image` - 图片处理
+- `flutter_svg` - SVG 支持
+- `flutter_slidable` - 滑动操作
+- `adaptive_dialog` - 自适应对话框
+- `page_transition` - 页面动画
+- `flutter_inappwebview` - 内置浏览器
+- `url_launcher` - URL 处理
+- `map_launcher` - 地图启动
+- `image_picker` - 图片选择
+- `image_cropper` - 图片裁剪
+- `flutter_local_notifications` - 本地通知
 
-### 开发依赖
-
-- pedantic_mono
-- custom_lint
-- riverpod_lint
-- json_serializable
-- build_runner
-- freezed
-- riverpod_generator
-- retrofit_generator
-- flutter_gen_runner
+### 开发工具 🛠️
+- `pedantic_mono` - 代码风格检查
+- `custom_lint` - 自定义检查
+- `bloc_test` - Bloc 测试
+- `json_serializable` - JSON 生成
+- `build_runner` - 代码生成
+- `freezed` - 不可变类生成
+- `retrofit_generator` - Retrofit 生成
+- `flutter_gen_runner` - 资源生成
 
 ## 状态管理指南
 
-1. 使用带有@riverpod注解的Riverpod
-2. 让riverpod_generator决定适当的Notifier类
-3. 使用SharedPreferences进行本地存储
-4. 使用Freezed遵循正确的状态不可变模式
-5. 使用适当的provider作用域
+1. BLoC模式实现原则：
+   - 使用Event作为输入
+   - 使用State作为输出
+   - 使用emit发送新状态
+   - 实现clear separation of concerns
+
+2. BLoC类实现规范：
+```dart
+class AccountBloc extends Bloc<AccountEvent, AccountState> {
+  AccountBloc(this._accountRepository) : super(const AccountState.initial()) {
+    on<AccountLoaded>(_onAccountLoaded);
+    on<AccountUpdated>(_onAccountUpdated);
+  }
+
+  final AccountRepository _accountRepository;
+
+  Future<void> _onAccountLoaded(
+    AccountLoaded event,
+    Emitter<AccountState> emit,
+  ) async {
+    emit(const AccountState.loading());
+    try {
+      final account = await _accountRepository.getAccount();
+      emit(AccountState.loaded(account));
+    } catch (error) {
+      emit(AccountState.error(error.toString()));
+    }
+  }
+}
+```
+
+3. Event定义规范：
+```dart
+abstract class AccountEvent extends Equatable {
+  const AccountEvent();
+
+  @override
+  List<Object?> get props => [];
+}
+
+class AccountLoaded extends AccountEvent {
+  const AccountLoaded();
+}
+
+class AccountUpdated extends AccountEvent {
+  const AccountUpdated(this.account);
+
+  final Account account;
+
+  @override
+  List<Object?> get props => [account];
+}
+```
+
+4. State定义规范：
+```dart
+@freezed
+class AccountState with _$AccountState {
+  const factory AccountState.initial() = _Initial;
+  const factory AccountState.loading() = _Loading;
+  const factory AccountState.loaded(Account account) = _Loaded;
+  const factory AccountState.error(String message) = _Error;
+}
+```
+
+5. UI集成规范：
+```dart
+class AccountPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => AccountBloc(
+        context.read<AccountRepository>(),
+      )..add(const AccountLoaded()),
+      child: BlocBuilder<AccountBloc, AccountState>(
+        builder: (context, state) {
+          return state.when(
+            initial: () => const SizedBox(),
+            loading: () => const CircularProgressIndicator(),
+            loaded: (account) => AccountView(account: account),
+            error: (message) => ErrorView(message: message),
+          );
+        },
+      ),
+    );
+  }
+}
+```
 
 ## 功能组织
 
@@ -167,7 +246,7 @@ lib/
 2. 功能结构应包括：
    - pages/（UI界面）
    - widgets/（功能特定组件）
-   - providers/（状态管理）
+   - bloc/（状态管理）
    - repositories/（数据访问）
    - entities/（功能特定实体）
 
@@ -197,7 +276,32 @@ lib/
 1. 将测试放在test目录中
 2. 为业务逻辑编写单元测试
 3. 为UI组件实现组件测试
-4. 使用mockito进行依赖模拟
+4. 使用bloc_test进行BLoC测试
+5. 使用mockito进行依赖模拟
+
+```dart
+void main() {
+  group('AccountBloc', () {
+    late AccountBloc accountBloc;
+    late MockAccountRepository mockRepository;
+
+    setUp(() {
+      mockRepository = MockAccountRepository();
+      accountBloc = AccountBloc(mockRepository);
+    });
+
+    blocTest<AccountBloc, AccountState>(
+      'emits [loading, loaded] when account is loaded successfully',
+      build: () => accountBloc,
+      act: (bloc) => bloc.add(const AccountLoaded()),
+      expect: () => [
+        const AccountState.loading(),
+        AccountState.loaded(mockAccount),
+      ],
+    );
+  });
+}
+```
 
 ## 性能指南
 
