@@ -415,6 +415,146 @@ class UserViewModel {
 
 1. 遵循pedantic_mono lint规则
 2. 使用custom_lint进行额外检查
-3. 使用riverpod_lint进行Riverpod特定规则检查
+3. 
 4. 修复所有分析警告
 5. 使用适当的空安全模式
+
+## 功能开发流程
+
+### 协作流程：
+
+```mermaid
+graph TD
+  A[ApiModule] -->|提供| B(Dio实例)
+  B -->|注入| C[UserApiClient工厂方法]
+  C -->|生成| D(_UserApiClient实现类)
+  D -->|被仓库层调用| E[UserRepositoryImpl]
+```
+
+### 代码生成完整流程
+
+1. **实体类定义**
+```dart
+// 1. 创建实体类
+@freezed
+class User with _$User {
+  const factory User({
+    required String id,
+    required String name,
+    required String email,
+    @Default(false) bool isVerified,
+  }) = _User;
+
+  // JSON 序列化
+  factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
+}
+```
+
+2. **API 接口定义**
+```dart
+// 2. 定义 API 客户端
+@RestApi(baseUrl: "https://api.example.com")
+abstract class UserApiClient {
+  factory UserApiClient(Dio dio) = _UserApiClient;
+
+  @GET("/users/{id}")
+  Future<User> getUser(@Path("id") String id);
+
+  @POST("/users")
+  Future<User> createUser(@Body() User user);
+}
+```
+
+3. **仓库接口定义**
+```dart
+// 3. 定义仓库接口
+abstract class UserRepository {
+  Future<User> getUser(String id);
+  Future<User> createUser(User user);
+}
+
+// 4. 实现仓库接口
+@Injectable()
+class UserRepositoryImpl implements UserRepository {
+  final UserApiClient _apiClient;
+
+  UserRepositoryImpl(this._apiClient);
+
+  @override
+  Future<User> getUser(String id) => _apiClient.getUser(id);
+
+  @override
+  Future<User> createUser(User user) => _apiClient.createUser(user);
+}
+```
+
+4. **依赖注入配置**
+```dart
+// 5. 配置依赖注入
+@module
+abstract class ApiModule {
+  @singleton
+  Dio get dio => Dio(); // 可以添加拦截器等配置
+
+  @singleton
+  UserApiClient getUserApiClient(Dio dio) => UserApiClient(dio);
+}
+```
+
+5. **生成代码**
+```bash
+# 6. 运行代码生成命令
+flutter pub run build_runner build --delete-conflicting-outputs
+```
+
+这将生成：
+- Freezed 模型类 (`*.freezed.dart`)
+- JSON 序列化代码 (`*.g.dart`)
+- Retrofit API 客户端实现
+- 依赖注入配置
+
+6. **使用生成的代码**
+```dart
+// 7. 在 BLoC 中使用
+@injectable
+class UserBloc extends Bloc<UserEvent, UserState> {
+  final UserRepository _repository;
+
+  UserBloc(this._repository) : super(const UserState.initial()) {
+    on<UserLoaded>(_onUserLoaded);
+  }
+
+  Future<void> _onUserLoaded(
+    UserLoaded event,
+    Emitter<UserState> emit,
+  ) async {
+    emit(const UserState.loading());
+    try {
+      final user = await _repository.getUser(event.id);
+      emit(UserState.loaded(user));
+    } catch (error) {
+      emit(UserState.error(error.toString()));
+    }
+  }
+}
+```
+
+### 代码生成注意事项
+
+1. **生成命令选项**
+   - `build`: 单次生成
+   - `watch`: 持续监听文件变化
+   - `--delete-conflicting-outputs`: 解决冲突文件
+   - `--build-filter`: 指定特定文件
+
+2. **常见问题解决**
+   - 如果生成失败，先尝试 `flutter clean`
+   - 检查注解是否正确
+   - 确保所有必要的依赖都已配置
+   - 版本冲突时检查依赖版本
+
+3. **最佳实践**
+   - 将生成的文件加入 `.gitignore`
+   - 定期更新生成器版本
+   - 在 CI/CD 流程中包含代码生成步骤
+   - 团队成员间同步生成器版本
