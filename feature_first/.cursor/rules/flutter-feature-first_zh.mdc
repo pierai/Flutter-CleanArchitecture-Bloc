@@ -558,3 +558,40 @@ class UserBloc extends Bloc<UserEvent, UserState> {
    - 定期更新生成器版本
    - 在 CI/CD 流程中包含代码生成步骤
    - 团队成员间同步生成器版本
+
+## 代码生成与模型转换体系
+
+### 跨层代码生成流程
+1. ​**领域模型生成**​（Domain层）
+   - 使用`@freezed`生成不可变实体[1,7](@ref)
+   - 文件命名：`feature/domain/entities/user.entity.dart`
+
+2. ​**API客户端生成**​（Infrastructure层）
+   - 使用`@RestApi`生成Retrofit客户端[2,5](@ref)
+   - 文件命名：`feature/infrastructure/api/user_api.dart`
+
+3. ​**依赖注入配置**​（Core层）
+   - 使用`@module`+`@singleton`管理全局依赖[4,6](@ref)
+   - 文件命名：`core/di/modules/api_module.dart`
+
+### 模型转换规范
+#### 分层模型定义
+| 层级            | 命名规范      | 转换责任             | 示例文件                     |
+|-----------------|-------------|--------------------|---------------------------|
+| ​**DTO**         | UserDto     | Infrastructure层  | `user.dto.dart`           |
+| ​**Entity**      | User        | Domain层           | `user.entity.dart`        | 
+| ​**UI Model**    | UserViewModel | Presentation层    | `user.view_model.dart`    |
+
+#### 转换场景示例
+```dart
+// Infrastructure层转换 (DTO → Entity)
+class UserDto {
+  User toDomain() => User(id: id, name: name);
+}
+
+// Presentation层转换 (Entity → ViewModel)
+extension UserViewModelX on User {
+  UserViewModel toViewModel() => UserViewModel(
+    displayName: name.toUpperCase()
+  );
+}
