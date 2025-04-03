@@ -3,24 +3,85 @@ description: 基于BLoC的特性优先架构
 globs: *
 alwaysApply: true
 ---
-## 概述
+# 基于BLoC的特性优先架构
 
-本文档概述了基于实际项目分析的当前项目结构和架构模式。遵循这些指南以在应用Flutter最佳实践的同时保持一致性。
+## 架构概览
 
-## 架构概述
+### 核心理念
+- 基于BLoC模式的Feature-first架构 
+- 领域驱动设计(DDD)分层结构
+- 清晰的数据流和职责分离
 
-- 基于BLoC模式的Feature-first架构
-- 基于Hooks的组件组合
-- 领域驱动设计(DDD)的分层架构
-  - Domain层：业务逻辑和规则
-  - Infrastructure层：数据访问和外部服务
-  - Presentation层：用户界面和交互
-- SharedPreferences用于本地持久化
-- Retrofit用于API通信
-- 使用flutter_lints和custom_lint进行静态分析
+### 架构分层
+- **Domain层**：业务逻辑和规则，框架无关
+- **Infrastructure层**：数据访问实现和外部服务
+- **Presentation层**：用户界面和交互
 
-## 项目结构
+### 架构图
 
+#### 各层之间的关系
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Presentation Layer                      │
+│                                                             │
+│  ┌──────────┐      ┌───────────┐      ┌──────────────────┐  │
+│  │  Pages   │──────│   Bloc    │──────│     Widgets      │  │
+│  └──────────┘      └───────────┘      └──────────────────┘  │
+└─────────────────────────────┬───────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      Application Layer                       │
+│                                                             │
+│  ┌──────────┐      ┌───────────┐      ┌──────────────────┐  │
+│  │ Services │──────│  Facades  │──────│   Event Handlers │  │
+│  └──────────┘      └───────────┘      └──────────────────┘  │
+└─────────────────────────────┬───────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                        Domain Layer                          │
+│                                                             │
+│  ┌──────────┐      ┌───────────┐      ┌──────────────────┐  │
+│  │ Entities │──────│ Use Cases │──────│ Domain Services  │  │
+│  └──────────┘      └───────────┘      └──────────────────┘  │
+└─────────────────────────────┬───────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Infrastructure Layer                      │
+│                                                             │
+│  ┌──────────┐      ┌───────────┐      ┌──────────────────┐  │
+│  │ DataSources ────│Repositories│──────│External Services │  │
+│  └──────────┘      └───────────┘      └──────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 业务对象在各层间的转换流程
+```
+┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+│  API JSON   │─────▶│    DTO      │─────▶│   Entity    │
+└─────────────┘      └─────────────┘      └─────────────┘
+      ▲                                          │
+      │                                          ▼
+┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+│  Response   │◀─────│ Repository  │◀─────│  Use Case   │
+└─────────────┘      └─────────────┘      └─────────────┘
+                                                 │
+                                                 ▼
+                                          ┌─────────────┐
+                                          │   ViewModel │
+                                          └─────────────┘
+                                                 │
+                                                 ▼
+                                          ┌─────────────┐
+                                          │     UI      │
+                                          └─────────────┘
+```
+
+## 项目结构设计
+
+### 目录组织
 ```
 lib/
   ├── features/           // 功能模块
@@ -30,153 +91,98 @@ lib/
   │   │   │   ├── repositories/ // 仓库接口
   │   │   │   └── use_cases/    // 用例（业务逻辑）
   │   │   ├── infrastructure/   // 基础设施层
+  │   │   │   ├── models/      // DTO数据传输对象
+  │   │   │   ├── datasources/ // 数据源
+  │   │   │   │   ├── remote/  // 远程数据源
+  │   │   │   │   │   ├── api/ // API客户端
+  │   │   │   │   │   │   ├── user_api.dart   // 用户API接口
+  │   │   │   │   │   │   └── user_api.g.dart // 生成的API实现
+  │   │   │   │   │   └── user_remote_data_source.dart // 远程数据源实现 
+  │   │   │   │   └── local/   // 本地数据源
   │   │   │   └── repositories/ // 仓库实现
   │   │   └── presentation/     // 表现层
+  │   │       ├── models/      // UI模型，针对UI优化的数据结构
   │   │       ├── pages/       // 页面
   │   │       ├── widgets/     // 组件
-  │   │       └── bloc/        // 状态管理。领域层（domain）应该保持 框架无关性，Bloc 的框架依赖性（如 Flutter 的 Stream/Bloc 库）使其更适合放在表现层
+  │   │       └── bloc/        // 状态管理。领域层（domain）应该保持框架无关性，Bloc的框架依赖性（如Flutter的Stream/Bloc库）使其更适合放在表现层
   │   │           ├── account_bloc.dart     // BLoC类
   │   │           ├── account_event.dart    // 事件定义
   │   │           └── account_state.dart    // 状态定义
-  │   ├── authentication/      // 认证功能
-  │   ├── home/              // 主页功能
-  │   ├── setting/           // 设置功能
-  │   └── ...               // 其他功能模块
+  │   └── ... // 其他功能模块
   ├── core/                  // 核心功能
-  │   └── di/              # 依赖注入配置
-  │   │   ├── injector.dart
-  │   │   └── modules/     # 按功能划分的注入模块
+  │   ├── config/           // 配置管理模块
+  │   │   ├── app_config.dart      // 应用全局配置
+  │   │   ├── env_config.dart      // 环境配置
+  │   │   └── feature_flags.dart   // 功能开关配置
+  │   ├── event_bus/         // 模块间通信机制
+  │   │   ├── app_events.dart     // 应用事件定义
+  │   │   ├── event_bus.dart      // 事件总线实现
+  │   │   └── event_handler.dart  // 事件处理器接口
+  │   ├── network/           // 网络基础设施
+  │   │   ├── http_client.dart    // 基础HTTP客户端配置
+  │   │   ├── interceptors/       // 请求拦截器
+  │   │   └── error_handlers/     // 错误处理器
+  │   ├── di/                // 依赖注入配置
   │   ├── presentation/      // 核心表现层
-  │   │   └── widgets/      // 共享组件
-  │   │   └── bloc/         // 全局状态管理           
-  │   │       ├── app_bloc.dart  // 应用级BLoC
-  │   │       ├── app_event.dart // 应用级事件
-  │   │       └── app_state.dart // 应用级状态
   │   ├── exceptions/        // 自定义异常
   │   ├── extensions/        // 扩展方法
   │   ├── utils/            // 工具函数
   │   ├── router/           // 导航路由
   │   ├── res/              // 资源（生成的）
-  │   │   ├── colors/
-  │   │   ├── strings/
-  │   │   ├── themes/
-  │   │   └── icons/
   │   └── custom_hooks/     // 自定义Flutter hooks
-  └── test/                  # 测试目录与源码平行（可选）
-  │   └── features/
-  │   │   └── account/
-  │   │       ├── domain/
-  │   │       └── presentation/
   ├── app.dart              // 应用配置
   └── main.dart             // 入口点
 ```
-## 领域驱动设计（DDD）层次说明
+
+### 代码组织和命名规范
+| 文件类型 | 命名规范 | 示例 | 目录位置 |
+|---------------|--------------------------|--------------------------------|---------------|
+| 实体 | entity_name.entity.dart | user.entity.dart | features/feature_name/domain/entities/ |
+| 数据传输对象 | entity_name.dto.dart | user.dto.dart | features/feature_name/infrastructure/models/ |
+| 视图模型 | entity_name.view_model.dart | user.view_model.dart | features/feature_name/presentation/models/ |
+| 用例 | verb_noun.use_case.dart | get_user.use_case.dart | features/feature_name/domain/use_cases/ |
+| 仓库接口 | entity_name.repository.dart | user.repository.dart | features/feature_name/domain/repositories/ |
+| 仓库实现 | entity_name.repository.impl.dart | user.repository.impl.dart | features/feature_name/infrastructure/repositories/ |
+| 数据源 | entity_name.data_source.dart | user.remote_data_source.dart | features/feature_name/infrastructure/datasources/ |
+| API客户端 | entity_name.api.dart | user.api.dart | features/feature_name/infrastructure/datasources/remote/api/ |
+| BLoC | feature_name.bloc.dart | authentication.bloc.dart | features/feature_name/presentation/bloc/ |
+| 事件 | feature_name.event.dart | authentication.event.dart | features/feature_name/presentation/bloc/ |
+| 状态 | feature_name.state.dart | authentication.state.dart | features/feature_name/presentation/bloc/ |
+| 页面 | NounPage | HomePage | features/feature_name/presentation/pages/ |
+| 组件 | NounComponent | UserCard | features/feature_name/presentation/widgets/ |
+| 模型 | NounModel | UserModel | features/feature_name/domain/entities/ |
+| Providers | NounProvider | UserProvider | core/di/ |
+| 仓库 | NounRepository | UserRepository | features/feature_name/domain/repositories/ |
+| 应用配置 | config_type.config.dart | app.config.dart | core/config/ |
+| 事件总线 | event_type.event.dart | auth.event.dart | core/event_bus/ |
+| HTTP拦截器 | feature_interceptor.dart | auth_interceptor.dart | core/network/interceptors/ |
+
+## 分层架构详解
 
 ### Domain层
-- 包含业务逻辑和规则
-- 不依赖于具体的技术实现
-- 包括：
-  - Entities（实体）：核心业务对象
-  - Repositories（仓库接口）：定义数据操作契约
-  - Use Cases（用例）：具体业务逻辑实现
+- 纯业务逻辑，不依赖技术实现
+- 包含实体、仓库接口和用例
+- 定义核心业务规则和领域模型
 
 ### Infrastructure层
 - 实现Domain层定义的接口
-- 处理外部系统交互
-- 包括：
-  - Repository实现
-  - 外部服务适配器
-  - 数据源实现
+- 处理数据持久化和外部系统交互
+- 负责DTO与领域实体的转换
+- 包含远程数据源(API)和本地数据源
 
 ### Presentation层
-- 处理用户界面和交互
-- 使用Domain层的Use Cases
-- 包括：
-  - Pages（页面）
-  - Widgets（组件）
-  - View Models/Controllers
-  
+- 使用BLoC模式管理UI状态
+- 处理用户交互和展示逻辑
+- 负责领域实体与UI模型的转换
 
-## 包依赖
+## 数据流与状态管理
 
-### 架构和状态管理 🏗️
-- `flutter_bloc: ^8.1.4` - Bloc 状态管理库，用于分离业务逻辑和 UI
-- `bloc` - Bloc 核心实现
-- `bloc_concurrency` - Bloc 并发控制
-- `get_it: ^7.6.7` - 依赖注入容器
-- `injectable: ^2.3.2` - 简化依赖注入配置
+### BLoC实现模式
+- Event作为输入，State作为输出
+- 使用emit发送新状态
+- 实现clear separation of concerns
 
-### 网络和数据处理 🌐
-- `dio: ^5.4.0` - HTTP 客户端
-- `retrofit` - REST API 客户端生成器
-- `objectbox: ^2.5.0` - 本地数据库，高性能 NoSQL
-- `shared_preferences` - 键值对存储
-
-### UI 和交互 📱
-- `auto_route: ^7.8.4` - 路由管理
-- `flutter_screenutil: ^5.9.0` - 屏幕适配
-- `pull_to_refresh_flutter3` - 下拉刷新
-- `infinite_scroll_pagination: ^4.0.0` - 无限滚动分页
-- `flutter_slidable` - 滑动操作组件
-- `dismissible_page` - 可滑动关闭的页面
-- `adaptive_dialog` - 自适应对话框
-- `page_transition` - 页面转场动画
-- `flutter_inappwebview` - 内置浏览器
-
-### 图片处理 🖼️
-- `flutter_svg: ^2.0.9` - SVG 图像支持
-- `cached_network_image: ^3.3.1` - 图片缓存
-- `extended_image` - 高级图片处理
-- `image_picker` - 图片选择器
-- `image_cropper` - 图片裁剪
-
-### 实用工具 🛠️
-- `dartx: ^1.2.0` - Dart 扩展方法集合
-- `rxdart: ^0.27.7` - 响应式编程扩展
-- `intl: ^0.18.1` - 国际化支持
-- `collection` - Dart 集合操作工具
-- `tuple: ^2.0.2` - 元组数据类型
-- `uuid` - UUID 生成器
-- `quiver` - 实用工具库
-- `logger` - 日志工具
-
-### 平台集成 📱
-- `path_provider` - 文件系统路径
-- `device_info_plus` - 设备信息
-- `url_launcher` - URL 处理
-- `map_launcher` - 地图应用启动
-- `flutter_local_notifications` - 本地通知
-- `flutter_udid` - 设备唯一标识
-
-### 代码生成 ⚙️
-- `freezed_annotation` - 不可变对象注解
-- `json_serializable` - JSON 序列化生成
-- `json_annotation` - JSON 序列化注解
-- `equatable` - 相等性比较
-- `build_runner` - 代码生成工具
-- `freezed` - 不可变类生成器
-- `retrofit_generator` - Retrofit 客户端生成器
-- `flutter_gen_runner` - 资源代码生成器
-- `injectable_generator` - 依赖注入代码生成器
-
-### 开发和测试 🔧
-- `flutter_lints: ^3.0.1` - Flutter 代码规范
-- `custom_lint` - 自定义代码检查
-- `pedantic_mono` - 严格代码风格检查
-- `mocktail: ^1.0.3` - 模拟测试框架
-- `bloc_test: ^9.1.6` - Bloc 测试工具
-- `melos: ^4.1.0` - 多模块项目管理
-
-
-## 状态管理指南
-
-1. BLoC模式实现原则：
-   - 使用Event作为输入
-   - 使用State作为输出
-   - 使用emit发送新状态
-   - 实现clear separation of concerns
-
-2. BLoC类实现规范：
+### BLoC类实现规范
 ```dart
 class AccountBloc extends Bloc<AccountEvent, AccountState> {
   AccountBloc(this._accountRepository) : super(const AccountState.initial()) {
@@ -201,7 +207,7 @@ class AccountBloc extends Bloc<AccountEvent, AccountState> {
 }
 ```
 
-3. Event定义规范：
+### Event定义规范
 ```dart
 abstract class AccountEvent extends Equatable {
   const AccountEvent();
@@ -224,7 +230,7 @@ class AccountUpdated extends AccountEvent {
 }
 ```
 
-4. State定义规范：
+### State定义规范
 ```dart
 @freezed
 class AccountState with _$AccountState {
@@ -235,7 +241,7 @@ class AccountState with _$AccountState {
 }
 ```
 
-5. UI集成规范：
+### UI集成规范
 ```dart
 class AccountPage extends StatelessWidget {
   @override
@@ -259,179 +265,18 @@ class AccountPage extends StatelessWidget {
 }
 ```
 
-## 功能组织
-
-1. 每个功能应该在features/目录下自包含
-2. 功能结构应包括：
-   - pages/（UI界面）
-   - widgets/（功能特定组件）
-   - bloc/（状态管理）
-   - repositories/（数据访问）
-   - entities/（功能特定实体）
-
-## 核心层指南
-
-1. 核心功能应放置在适当的core/子目录中
-2. 共享组件应放置在core/widgets/中
-3. 业务逻辑应在core/use_cases/中
-4. 领域实体应在core/entities/中
-5. 仓库接口应在core/repositories/中
-
-## 代码生成
-
-1. 使用build_runner进行代码生成：
-   ```bash
-   flutter pub run build_runner build
-   ```
-2. 为以下内容生成代码：
-   - Freezed模型
-   - Riverpod providers
-   - Retrofit API客户端
-   - JSON序列化
-   - FlutterGen资源
-
-## 测试指南
-
-1. 将测试放在test目录中
-2. 为业务逻辑编写单元测试
-3. 为UI组件实现组件测试
-4. 使用bloc_test进行BLoC测试
-
-```dart
-void main() {
-  group('AccountBloc', () {
-    late AccountBloc accountBloc;
-    late MockAccountRepository mockRepository;
-
-    setUp(() {
-      mockRepository = MockAccountRepository();
-      accountBloc = AccountBloc(mockRepository);
-    });
-
-    blocTest<AccountBloc, AccountState>(
-      'emits [loading, loaded] when account is loaded successfully',
-      build: () => accountBloc,
-      act: (bloc) => bloc.add(const AccountLoaded()),
-      expect: () => [
-        const AccountState.loading(),
-        AccountState.loaded(mockAccount),
-      ],
-    );
-  });
-}
-```
-
-## 数据流和模型转换
-
-### 数据流向
-1. **UI层**：用户交互触发Event
-2. **BLoC层**：处理Event，调用Use Case
-3. **Use Case层**：执行业务逻辑，调用Repository
-4. **Repository层**：协调数据源，返回Domain实体
-5. **数据源**：提供原始数据
+### 典型数据流向
+1. UI层触发Event
+2. BLoC层处理Event，调用Use Case
+3. Use Case执行业务逻辑，调用Repository
+4. Repository协调数据源，返回Domain实体
+5. 数据通过各层转换后展示在UI上
 
 ### 模型转换策略
-- **DTO (Data Transfer Objects)**：位于Infrastructure层，用于API通信
-- **Entity**：位于Domain层，表示核心业务对象
-- **UI Models**：位于Presentation层，针对UI展示优化
+- Infrastructure层: DTO ↔ Entity
+- Presentation层: Entity ↔ ViewModel
 
-转换责任：
-- Infrastructure层负责DTO与Entity的互相转换
-- Presentation层负责Entity与UI Model的互相转换
-
-示例：
-```dart
-// Infrastructure层
-@JsonSerializable()
-class UserDto {
-  final String id;
-  final String name;
-  final String email;
-  
-  UserDto({required this.id, required this.name, required this.email});
-  
-  factory UserDto.fromJson(Map<String, dynamic> json) => _$UserDtoFromJson(json);
-  Map<String, dynamic> toJson() => _$UserDtoToJson(this);
-  
-  // 转换为领域实体
-  User toDomain() => User(id: id, name: name, email: email);
-}
-
-// Domain层
-class User {
-  final String id;
-  final String name;
-  final String email;
-  
-  User({required this.id, required this.name, required this.email});
-}
-
-// Presentation层
-class UserViewModel {
-  final String id;
-  final String displayName;
-  final String emailAddress;
-  final bool isVerified;
-  
-  UserViewModel({
-    required this.id, 
-    required this.displayName, 
-    required this.emailAddress,
-    this.isVerified = false,
-  });
-  
-  factory UserViewModel.fromEntity(User user) => UserViewModel(
-    id: user.id,
-    displayName: user.name,
-    emailAddress: user.email,
-  );
-}
-```
-
-## 命名指南
-
-1. 遵循一致的命名规范：
-
-   - 目录名：snake_case
-   - 文件名：snake_case
-   - 类名：UpperCamelCase
-   - 变量名：camelCase
-
-2. 功能特定命名：
-
-   - 页面：NounPage（例如，HomePage）
-   - 组件：NounComponent（例如，UserCard）
-   - 模型：NounModel（例如，UserModel）
-   - Providers：NounProvider（例如，UserProvider）
-   - 仓库：NounRepository（例如，UserRepository）
-
-3. 一般原则：
-   - 实体使用名词或形容词
-   - 动作使用动词
-   - 考虑命名的复数形式
-   - 保持名称清晰和描述性
-
-## 静态分析
-
-1. 遵循pedantic_mono lint规则
-2. 使用custom_lint进行额外检查
-3. 
-4. 修复所有分析警告
-5. 使用适当的空安全模式
-
-## 功能开发流程
-
-### 协作流程：
-
-```mermaid
-graph TD
-  A[ApiModule] -->|提供| B(Dio实例)
-  B -->|注入| C[UserApiClient工厂方法]
-  C -->|生成| D(_UserApiClient实现类)
-  D -->|被仓库层调用| E[UserRepositoryImpl]
-```
-
-### 代码生成完整流程
+## 代码生成完整流程
 
 1. **实体类定义**
 ```dart
@@ -539,48 +384,28 @@ class UserBloc extends Bloc<UserEvent, UserState> {
 }
 ```
 
-### 代码生成注意事项
-
-1. **生成命令选项**
-   - `build`: 单次生成
-   - `watch`: 持续监听文件变化
-   - `--delete-conflicting-outputs`: 解决冲突文件
-   - `--build-filter`: 指定特定文件
-
-2. **常见问题解决**
-   - 如果生成失败，先尝试 `flutter clean`
-   - 检查注解是否正确
-   - 确保所有必要的依赖都已配置
-   - 版本冲突时检查依赖版本
-
-3. **最佳实践**
-   - 将生成的文件加入 `.gitignore`
-   - 定期更新生成器版本
-   - 在 CI/CD 流程中包含代码生成步骤
-   - 团队成员间同步生成器版本
-
 ## 代码生成与模型转换体系
 
 ### 跨层代码生成流程
-1. ​**领域模型生成**​（Domain层）
-   - 使用`@freezed`生成不可变实体[1,7](@ref)
-   - 文件命名：`feature/domain/entities/user.entity.dart`
+1. **领域模型生成**（Domain层）
+   - 使用`@freezed`生成不可变实体
+   - 文件命名：`feature/domain/entitiesr.entity.dart`
 
-2. ​**API客户端生成**​（Infrastructure层）
-   - 使用`@RestApi`生成Retrofit客户端[2,5](@ref)
-   - 文件命名：`feature/infrastructure/api/user_api.dart`
+2. **API客户端生成**（Infrastructure层）
+   - 使用`@RestApi`生成Retrofit客户端
+   - 文件命名：`feature/infrastructure/datasos/remote/api/user_api.dart`
 
-3. ​**依赖注入配置**​（Core层）
-   - 使用`@module`+`@singleton`管理全局依赖[4,6](@ref)
-   - 文件命名：`core/di/modules/api_module.dart`
+3. **依赖注入配置**（Core层）
+   - 使用`@module`+`@singleton`管理全局依赖
+   - 文件命名：`core/di/modules/module.dart`
 
 ### 模型转换规范
 #### 分层模型定义
-| 层级            | 命名规范      | 转换责任             | 示例文件                     |
-|-----------------|-------------|--------------------|---------------------------|
-| ​**DTO**         | UserDto     | Infrastructure层  | `user.dto.dart`           |
-| ​**Entity**      | User        | Domain层           | `user.entity.dart`        | 
-| ​**UI Model**    | UserViewModel | Presentation层    | `user.view_model.dart`    |
+| 层级 | 命名规范 | 转换责任 | 示例文件 |
+|------------------|--------------|--------------------|---------------------------|
+| **DTO** | UserDto | Infrastructure层 | `user.dto.dart` |
+| **Entity** | User | Domain层 | `user.entity.dart` | 
+| **UI Model** | UserViewModel | Presentation层 | `user.view_model.dart` |
 
 #### 转换场景示例
 ```dart
@@ -595,3 +420,142 @@ extension UserViewModelX on User {
     displayName: name.toUpperCase()
   );
 }
+```
+
+## HTTP请求调用的组织
+
+### 网络层次结构
+```
+core/
+  └── network/
+      ├── http_client.dart         // 基础HTTP客户端配置
+      ├── api_endpoints.dart       // API端点常量
+      ├── interceptors/            // HTTP拦截器
+      │   ├── auth_interceptor.dart // 身份验证拦截器
+      │   ├── logging_interceptor.dart // 日志拦截器
+      │   └── error_interceptor.dart // 错误拦截器
+      └── error_handlers/          // 错误处理
+          ├── network_error_handler.dart // 网络错误处理
+          └── api_error_handler.dart // API错误处理
+```
+
+### 基础HTTP客户端配置
+```dart
+// core/network/http_client.dart
+@singleton
+class AppHttpClient {
+  final Dio dio;
+  
+  AppHttpClient() : dio = Dio() {
+    dio.options.baseUrl = AppConfig.apiBaseUrl;
+    dio.options.connectTimeout = const Duration(seconds: 15);
+    dio.options.receiveTimeout = const Duration(seconds: 15);
+    
+    // 添加拦截器
+    dio.interceptors.addAll([
+      AuthInterceptor(),
+      LoggingInterceptor(),
+      ErrorInterceptor(),
+    ]);
+  }
+}
+```
+
+### 功能模块中的API实现
+```dart
+// features/authentication/infrastructure/datasources/remote/api/auth_api.dart
+@RestApi()
+abstract class AuthApi {
+  factory AuthApi(Dio dio) = _AuthApi;
+  
+  @POST('/auth/login')
+  Future<TokenDto> login(@Body() LoginRequestDto request);
+  
+  @POST('/auth/register')
+  Future<UserDto> register(@Body() RegisterRequestDto request);
+}
+
+// features/authentication/infrastructure/datasources/remote/auth_remote_data_source.dart
+class AuthRemoteDataSource {
+  final AuthApi _api;
+  
+  AuthRemoteDataSource(this._api);
+  
+  Future<Token> login(String email, String password) async {
+    final request = LoginRequestDto(email: email, password: password);
+    final response = await _api.login(request);
+    return response.toDomain();
+  }
+}
+```
+
+## 测试指南
+
+1. 将测试放在test目录中
+2. 为业务逻辑编写单元测试
+3. 为UI组件实现组件测试
+4. 使用bloc_test进行BLoC测试
+
+```dart
+void main() {
+  group('AccountBloc', () {
+    late AccountBloc accountBloc;
+    late MockAccountRepository mockRepository;
+
+    setUp(() {
+      mockRepository = MockAccountRepository();
+      accountBloc = AccountBloc(mockRepository);
+    });
+
+    blocTest<AccountBloc, AccountState>(
+      'emits [loading, loaded] when account is loaded successfully',
+      build: () => accountBloc,
+      act: (bloc) => bloc.add(const AccountLoaded()),
+      expect: () => [
+        const AccountState.loading(),
+        AccountState.loaded(mockAccount),
+      ],
+    );
+  });
+}
+```
+
+## 静态分析
+
+1. 遵循pedantic_mono lint规则
+2. 使用custom_lint进行额外检查
+3. 修复所有分析警告
+4. 使用适当的空安全模式
+5. 严格代码格式检查
+
+### 静态分析配置
+```yaml
+# analysis_options.yaml
+include: package:pedantic_mono/analysis_options.yaml
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+  errors:
+    invalid_annotation_target: ignore
+
+linter:
+  rules:
+    - always_use_package_imports
+    - avoid_empty_else
+    - avoid_redundant_argument_values
+    - avoid_relative_lib_imports
+    - avoid_returning_null_for_future
+    - cancel_subscriptions
+    - close_sinks
+    - comment_references
+    - prefer_relative_imports
+    - sort_pub_dependencies
+    - use_key_in_widget_constructors
+```
+
+### 代码质量检查工具集成
+- GitHub Actions中集成静态分析检查
+- 代码提交前运行代码检查
+- 使用pre-commit钩子确保代码符合规范
