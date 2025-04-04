@@ -4,13 +4,69 @@ globs: *
 alwaysApply: true
 ---
 # 基于BLoC的特性优先架构
-
+```mermaid
+%% 架构全景图
+flowchart TD
+    subgraph Presentation
+        A[UI Widgets] -->|触发事件| B[BLoC]
+        B -->|发布状态| A
+        B -->|调用| C[Use Cases]
+    end
+    
+    subgraph Domain
+        C -->|业务逻辑| D[Entities]
+        C -->|接口调用| E[Repositories]
+    end
+    
+    subgraph Infrastructure
+        E -->|实现| F[DataSources]
+        F -->|远程调用| G[API]
+        F -->|本地存储| H[Database]
+    end
+    
+    style A fill:#f9d5e5,stroke:#e39ff6
+    style B fill:#e2e2ef,stroke:#7ec0ee
+    style C fill:#d5e8d4,stroke:#82b366
+    style D fill:#ffe6cc,stroke:#f8cecc
+```
 ## 架构概览
+
+### 分层模型
+```mermaid
+graph TD
+    PL[Presentation Layer] -->|事件流| AL[Application Layer]
+    AL -->|业务调用| DL[Domain Layer]
+    DL -->|数据访问| IL[Infrastructure Layer]
+    
+    subgraph PL
+        direction TB
+        UI[Widgets] <-->|State| BLoC
+        BLoC <-->|Event| Handlers
+    end
+    
+    subgraph AL
+        direction TB
+        Services --> Facades
+        Facades --> UseCases
+    end
+    
+    subgraph DL
+        direction TB
+        Entities -->|聚合| Aggregates
+        Repositories -.->|接口| DomainServices
+    end
+    
+    subgraph IL
+        direction TB
+        DataSources --> APIs
+        DataSources --> Databases
+    end
+```
 
 ### 核心理念
 - 基于BLoC模式的Feature-first架构 
 - 领域驱动设计(DDD)分层结构
-- 清晰的数据流和职责分离
+- 清晰的数据流和职责分离ffff
 
 ### 架构分层
 - **Domain层**：业务逻辑和规则，框架无关
@@ -20,41 +76,14 @@ alwaysApply: true
 ### 架构图
 
 #### 各层之间的关系
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      Presentation Layer                      │
-│                                                             │
-│  ┌──────────┐      ┌───────────┐      ┌──────────────────┐  │
-│  │  Pages   │──────│   Bloc    │──────│     Widgets      │  │
-│  └──────────┘      └───────────┘      └──────────────────┘  │
-└─────────────────────────────┬───────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      Application Layer                       │
-│                                                             │
-│  ┌──────────┐      ┌───────────┐      ┌──────────────────┐  │
-│  │ Services │──────│  Facades  │──────│   Event Handlers │  │
-│  └──────────┘      └───────────┘      └──────────────────┘  │
-└─────────────────────────────┬───────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                        Domain Layer                          │
-│                                                             │
-│  ┌──────────┐      ┌───────────┐      ┌──────────────────┐  │
-│  │ Entities │──────│ Use Cases │──────│ Domain Services  │  │
-│  └──────────┘      └───────────┘      └──────────────────┘  │
-└─────────────────────────────┬───────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Infrastructure Layer                      │
-│                                                             │
-│  ┌──────────┐      ┌───────────┐      ┌──────────────────┐  │
-│  │ DataSources ────│Repositories│──────│External Services │  │
-│  └──────────┘      └───────────┘      └──────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+  A[Presentation Layer] -->|事件传递| B[BLoC]
+  B -->|状态更新| C[Widgets]
+  B -->|调用| D[Use Cases]
+  D -->|协调| E[Repositories]
+  E -->|聚合| F[DataSources]
+  F -->|调用| G[External Services]
 ```
 
 #### 业务对象在各层间的转换流程
@@ -124,6 +153,9 @@ lib/
   │   │   └── error_handlers/     // 错误处理器
   │   ├── di/                // 依赖注入配置
   │   ├── presentation/      // 核心表现层
+  │   │   ├── theme/         # 核心主题样式
+  │   │   ├── widgets/       # 全局通用组件
+  │   │   └── utils/         # 表现层工具
   │   ├── exceptions/        // 自定义异常
   │   ├── extensions/        // 扩展方法
   │   ├── utils/            // 工具函数
@@ -400,6 +432,26 @@ class UserBloc extends Bloc<UserEvent, UserState> {
    - 文件命名：`core/di/modules/module.dart`
 
 ### 模型转换规范
+```mermaid
+sequenceDiagram
+    participant UI as 界面
+    participant BLoC
+    participant UseCase
+    participant Repo
+    participant Source
+
+    UI->>BLoC: 触发LoadProfileEvent
+    BLoC->>UseCase: 执行GetProfile
+    UseCase->>Repo: 调用getProfile()
+    Repo->>Source: 请求网络数据
+    Source-->>Repo: 返回ProfileDTO
+    Repo->>Repo: 转换DTO为Entity
+    Repo-->>UseCase: 返回ProfileEntity
+    UseCase->>UseCase: 执行业务规则
+    UseCase-->>BLoC: 返回处理结果
+    BLoC->>BLoC: 转换为ProfileState
+    BLoC-->>UI: 输出ProfileViewModel
+```
 #### 分层模型定义
 | 层级 | 命名规范 | 转换责任 | 示例文件 |
 |------------------|--------------|--------------------|---------------------------|
